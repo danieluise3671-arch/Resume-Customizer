@@ -19,10 +19,10 @@ export class EmailSyncService {
     // Initial sync for all active accounts
     await this.syncAllAccounts();
 
-    // Set up periodic sync every 5 minutes
+    // Set up periodic sync every 1 minute for near-instant email delivery
     const globalSyncInterval = setInterval(async () => {
       await this.syncAllAccounts();
-    }, 5 * 60 * 1000); // 5 minutes
+    }, 1 * 60 * 1000); // 1 minute
 
     // Store the global interval
     this.syncIntervals.set('global', globalSyncInterval);
@@ -98,7 +98,7 @@ export class EmailSyncService {
 
     const now = new Date();
     const lastSync = new Date(account.lastSyncAt);
-    const syncFrequencyMs = (account.syncFrequency || 300) * 1000; // Default 5 minutes
+    const syncFrequencyMs = (account.syncFrequency || 60) * 1000; // Default 1 minute
 
     return (now.getTime() - lastSync.getTime()) >= syncFrequencyMs;
   }
@@ -148,7 +148,7 @@ export class EmailSyncService {
         .update(emailAccounts)
         .set({
           syncEnabled: true,
-          syncFrequency: syncFrequency || 300, // Default 5 minutes
+          syncFrequency: syncFrequency || 60, // Default 1 minute
           updatedAt: new Date(),
         })
         .where(eq(emailAccounts.id, accountId));

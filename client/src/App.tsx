@@ -5,42 +5,41 @@ import { Toaster } from '@/components/ui/toaster';
 import { Toaster as SonnerToaster } from 'sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { useAuth } from '@/hooks/useAuth';
-import { lazy, Suspense, memo } from 'react';
+import { lazy, Suspense, memo, useEffect } from 'react';
 import { PageLoader } from '@/components/ui/page-loader';
 
-// Preload critical routes for better performance
-const preloadComponent = (componentImport: () => Promise<any>) => {
-  const componentImportRef = { current: componentImport };
-  return lazy(() => componentImportRef.current());
-};
-// Lazy load components with better error boundaries
+// Lazy load all pages for optimal bundle splitting
 const NotFound = lazy(() => import('@/pages/not-found'));
-const Landing = preloadComponent(() => import('@/pages/landing'));
-const Dashboard = preloadComponent(() => import('@/pages/dashboard'));
-const MultiResumeEditorPage = preloadComponent(() => import('@/pages/multi-resume-editor-page'));
+const Landing = lazy(() => import('@/pages/landing'));
+const Dashboard = lazy(() => import('@/pages/dashboard'));
+const MultiResumeEditorPage = lazy(() => import('@/pages/multi-resume-editor-page'));
 const MarketingPage = lazy(() => import('@/pages/marketing'));
 const VerifyEmail = lazy(() => import('@/pages/verify-email'));
 const ResetPassword = lazy(() => import('@/pages/reset-password'));
 const Privacy = lazy(() => import('@/pages/privacy'));
 
-// Preload critical components on app mount
-if (typeof window !== 'undefined') {
-  // Preload dashboard for authenticated users
-  const preloadDashboard = () => import('@/pages/dashboard');
-  const preloadLanding = () => import('@/pages/landing');
-  
-  // Small delay to avoid blocking initial render
-  setTimeout(() => {
-    preloadDashboard();
-    preloadLanding();
-  }, 1000);
-}
-
 const Router = memo(() => {
   const { isAuthenticated, isLoading } = useAuth();
 
+  // Preload likely next pages based on auth status
+  useEffect(() => {
+    if (!isLoading) {
+      const preloadTimer = setTimeout(() => {
+        if (isAuthenticated) {
+          // Preload dashboard and marketing for authenticated users
+          import('@/pages/dashboard');
+          import('@/pages/marketing');
+        } else {
+          // Preload landing for non-authenticated users
+          import('@/pages/landing');
+        }
+      }, 100);
+      return () => clearTimeout(preloadTimer);
+    }
+  }, [isAuthenticated, isLoading]);
+
   if (isLoading) {
-    return <PageLoader variant="branded" text="Checking authentication..." />;
+    return <PageLoader variant="branded" text="Loading..." />;
   }
 
   return (
